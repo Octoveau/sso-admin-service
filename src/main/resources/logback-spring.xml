@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 定义日志输出格式变量：%d表示时间 花括号内为时间格式 %level表示日志级别 %thread表示线程名 %logger{0}表示输出日志的类名 [%line]表示行号用方括号包裹 %msg表示日志消息 %n换行 -->
+    <property name="log.pattern" value="[%d{'MM-dd HH:mm:ss.SSS'}] [%-5level] %logger{36}[%line] - %msg%n" />
+    <property name="log.pattern.error" value="[%d{'MM-dd HH:mm:ss.SSS'}] [%-5level] [%thread] %logger{36}[%line] - %msg%n" />
+    <property name="log.charset" value="UTF-8" />
+    <springProperty scope="context" name="spring.application.name" source="spring.application.name" defaultValue="sso"/>
+    
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>${log.charset}</charset>
+            <pattern>${log.pattern}</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Error 日志处理 -->
+    <appender name="ERROR_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <charset>${log.charset}</charset>
+            <pattern>${log.pattern.error}</pattern>
+        </encoder>
+        <!-- 滚动策略，按天输出日志 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--设置文件保存路径，timeBasedFileNamingAndTriggeringPolicy标签时，这里的%i要加上，不然会导致运行报错-->
+            <fileNamePattern>/tmp/sso/logs/${spring.application.name}-error.%d-%i.log</fileNamePattern>
+            <!-- 配置日志文件不能超过10M，若超过10M，日志文件会以索引0开始，命名日志文件，例如info.2018-12-21-0.log -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!--日志文件保留天数-->
+            <maxHistory>15</maxHistory>
+        </rollingPolicy> 
+    </appender>
+    
+    <logger name="octoveau.sso.admin" level="DEBUG"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="com.ulisesbocchio" level="WARN"/>
+    <logger name="org.apache" level="INFO"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.reflections" level="WARN"/>
+    
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ERROR_LOG"/>
+    </root>
+</configuration>
