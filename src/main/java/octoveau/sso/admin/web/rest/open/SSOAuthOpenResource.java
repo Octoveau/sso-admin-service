@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/openapi/auth")
-@Api(tags = "SSO Account Open Resource")
+@Api(tags = "SSO Auth Open Resource")
 public class SSOAuthOpenResource {
 
     @Autowired
@@ -50,10 +50,10 @@ public class SSOAuthOpenResource {
         return ResponseDTO.ok(user);
     }
 
-    @PostMapping("/sites/{siteKey}/logout")
+    @PostMapping("/sites/{siteToken}/logout")
     @ApiOperation(value = "登出指定站点")
-    public ResponseEntity<Void> logoutSite(@PathVariable("siteKey") String siteKey) {
-
+    public ResponseEntity<Void> logoutSite(@PathVariable("siteToken") String siteToken) {
+        ssoAuthService.logoutBySiteToken(siteToken);
         return ResponseEntity.ok().build();
     }
 

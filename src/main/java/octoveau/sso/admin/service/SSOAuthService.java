@@ -2,6 +2,7 @@ package octoveau.sso.admin.service;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import octoveau.sso.admin.SSOAdminContextHelper;
 import octoveau.sso.admin.cache.SiteCache;
 import octoveau.sso.admin.cache.SiteTokenCache;
 import octoveau.sso.admin.constant.CommonConstants;
@@ -17,6 +18,8 @@ import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
 import octoveau.sso.admin.web.rest.request.SSOTokenRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -102,6 +105,10 @@ public class SSOAuthService {
         SecurityContextHolder.clearContext();
     }
 
+    public void logoutBySiteToken(String token) {
+        ssoSiteTokenStorage.remove(token);
+    }
+
     public SSOSiteTicketDTO getTicketAndCacheSite(String siteKey, String currentUser) {
         String ticket = IDGeneratorUtil.generateUUID();
 
@@ -128,27 +135,29 @@ public class SSOAuthService {
                 || !StringUtils.equals(siteCache.getSiteSecret(), tokenRequest.getSiteSecret())) {
             throw new UnauthorizedAccessException("Invalid SiteKey or SiteSecret");
         }
-        long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
-        long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
-        Instant now = Instant.now();
         // 构建SiteToken
-        SSOSiteTokenDTO ssoSiteToken = new SSOSiteTokenDTO();
-        ssoSiteToken.setToken(siteCache.getToken());
-        ssoSiteToken.setExpireSeconds(tokenTTL);
-        ssoSiteToken.setExpires(now.plusSeconds(tokenTTL));
-        ssoSiteToken.setRefreshToken(siteCache.getRefreshToken());
-        ssoSiteToken.setRefreshTokenExpireSeconds(refreshTokenTTL);
-        ssoSiteToken.setRefreshTokenExpires(now.plusSeconds(refreshTokenTTL));
-
+        SSOSiteTokenDTO ssoSiteTokenDTO = generateSiteToken(siteCache.getToken(), siteCache.getRefreshToken());
         // 缓存siteToken
-        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteToken, siteCache.getCurrentUserId());
+        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteTokenDTO, siteCache.getCurrentUserId());
         ssoSiteTokenStorage.cacheSiteToken(siteCache.getToken(), siteTokenCache);
 
-        return ssoSiteToken;
+        return ssoSiteTokenDTO;
     }
 
     public SSOSiteTokenDTO refreshToken(SSOTokenRefreshRequest tokenRefreshRequest) {
-        return null;
+        String token = tokenRefreshRequest.getToken();
+        SiteTokenCache tokenCache = ssoSiteTokenStorage.getCache(token);
+        if (Objects.isNull(tokenCache)
+                || !StringUtils.equals(tokenCache.getRefreshToken(), tokenRefreshRequest.getRefreshToken())) {
+            throw new UnauthorizedAccessException("Invalid refresh token or expired");
+        }
+        // 构建SiteToken
+        SSOSiteTokenDTO ssoSiteTokenDTO = generateSiteToken(tokenCache.getToken(), tokenCache.getRefreshToken());
+        // 缓存siteToken
+        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteTokenDTO, tokenCache.getCurrentUserName());
+        ssoSiteTokenStorage.cacheSiteToken(tokenCache.getToken(), siteTokenCache);
+
+        return ssoSiteTokenDTO;
     }
 
     public UserDTO getUserByToken(String token) {
@@ -185,6 +194,22 @@ public class SSOAuthService {
         return siteCache;
     }
 
+    private SSOSiteTokenDTO generateSiteToken(String token, String refreshToken) {
+        long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
+        long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
+        Instant now = Instant.now();
+        // 构建SiteToken
+        SSOSiteTokenDTO ssoSiteToken = new SSOSiteTokenDTO();
+        ssoSiteToken.setToken(token);
+        ssoSiteToken.setExpireSeconds(tokenTTL);
+        ssoSiteToken.setExpires(now.plusSeconds(tokenTTL));
+        ssoSiteToken.setRefreshToken(refreshToken);
+        ssoSiteToken.setRefreshTokenExpireSeconds(refreshTokenTTL);
+        ssoSiteToken.setRefreshTokenExpires(now.plusSeconds(refreshTokenTTL));
+
+        return ssoSiteToken;
+    }
+
     private SiteTokenCache generateSiteTokenCache(SSOSiteTokenDTO ssoSiteToken, String currentUserName) {
         SiteTokenCache siteTokenCache = new SiteTokenCache();
         siteTokenCache.setCurrentUserName(currentUserName);
@@ -211,6 +236,7 @@ public class SSOAuthService {
         private final Cache<String, SiteCache> ticketCache;
 
         private SSOSiteTicketStorage() {
+            SSOAuthProperties ssoAuthProperties = SSOAdminContextHelper.getBean(SSOAuthProperties.class);
             long ticketTTL = normalizeLong(ssoAuthProperties.getSiteTicketTtl(), CommonConstants.DEFAULT_TICKET_TTL);
             ticketCache = CacheBuilder.newBuilder()
                     .maximumSize(100)
@@ -235,6 +261,7 @@ public class SSOAuthService {
         private final Cache<String, SiteTokenCache> tokenCache;
 
         private SSOSiteTokenStorage() {
+            SSOAuthProperties ssoAuthProperties = SSOAdminContextHelper.getBean(SSOAuthProperties.class);
             long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
             long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
             tokenCache = CacheBuilder.newBuilder()
@@ -249,6 +276,10 @@ public class SSOAuthService {
 
         SiteTokenCache getCache(String token) {
             return tokenCache.getIfPresent(token);
+        }
+
+        void remove(String token) {
+            tokenCache.invalidate(token);
         }
     }
 

@@ -1,5 +1,6 @@
 package octoveau.sso.admin.exception;
 
+import octoveau.sso.admin.util.StringHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +40,12 @@ public class GlobalExceptionHandler implements ProblemHandling {
 
         ProblemBuilder builder = Problem.builder()
                 .with("data", "")
-                .with("code", Objects.isNull(problem.getStatus()) ? "" : problem.getStatus().getStatusCode())
-                .with("message", StringUtils.isEmpty(problem.getDetail()) ? "" : problem.getDetail());
+                .with("code", Objects.isNull(problem.getStatus()) ? "" : problem.getStatus().getStatusCode());
+
+        String title = StringHelper.normalize(problem.getTitle(), "");
+        String detail = StringHelper.normalize(problem.getDetail(), "");
+        builder.with("message", String.format("%s %s", title, detail));
+
         return new ResponseEntity<>(builder.build(), entity.getHeaders(), HttpStatus.OK);
     }
 
@@ -53,7 +58,7 @@ public class GlobalExceptionHandler implements ProblemHandling {
 
         Problem problem = Problem.builder()
                 .withStatus(Status.BAD_REQUEST)
-                .withDetail(fieldErrors.toString())
+                .withTitle(fieldErrors.toString())
                 .build();
         return create(ex, problem, request);
     }
@@ -62,7 +67,7 @@ public class GlobalExceptionHandler implements ProblemHandling {
     public ResponseEntity<Problem> handleUsernameNotFoundException(UsernameNotFoundException ex, NativeWebRequest request) {
         Problem problem = Problem.builder()
                 .withStatus(Status.NOT_FOUND)
-                .withDetail(ex.getMessage())
+                .withTitle(ex.getMessage())
                 .build();
         return create(ex, problem, request);
     }
@@ -74,7 +79,7 @@ public class GlobalExceptionHandler implements ProblemHandling {
         String responseBody = ex.getResponseBodyAsString();
         Problem problem = Problem.builder()
                 .withStatus(Status.valueOf(ex.getStatusCode().name()))
-                .withDetail(responseBody)
+                .withTitle(responseBody)
                 .build();
         return create(ex, problem, request);
     }
