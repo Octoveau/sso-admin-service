@@ -8,8 +8,9 @@ import lombok.Data;
  * @author yifanzheng
  */
 @Data
-public class SiteTicketCache {
+public class SiteCache {
 
+    private String currentUserId;
     private String siteName;
     private String siteKey;
     private String siteSecret;

@@ -32,25 +32,28 @@ public class SSOAuthOpenResource {
     @PostMapping("/token")
     @ApiOperation(value = "获取token")
     public ResponseDTO<SSOSiteTokenDTO> getSSOToken(@RequestBody SSOTokenRequest tokenRequest) {
-        SSOSiteTokenDTO siteToken = ssoAuthService.getSiteToken(tokenRequest);
+        SSOSiteTokenDTO siteToken = ssoAuthService.getSiteTokenAndCache(tokenRequest);
         return ResponseDTO.ok(siteToken);
     }
 
     @PutMapping("/token/refresh")
     @ApiOperation(value = "刷新token")
     public ResponseDTO<SSOSiteTokenDTO> refreshSSOToken(@RequestBody SSOTokenRefreshRequest tokenRefreshRequest) {
-        return ResponseDTO.ok(null);
+        SSOSiteTokenDTO ssoSiteTokenDTO = ssoAuthService.refreshToken(tokenRefreshRequest);
+        return ResponseDTO.ok(ssoSiteTokenDTO);
     }
 
     @GetMapping("/user")
     @ApiOperation(value = "根据token获取用户信息")
     public ResponseDTO<UserDTO> getUserInfo(@RequestParam("token") String token) {
-        return ResponseDTO.ok(null);
+        UserDTO user = ssoAuthService.getUserByToken(token);
+        return ResponseDTO.ok(user);
     }
 
     @PostMapping("/sites/{siteKey}/logout")
     @ApiOperation(value = "登出指定站点")
     public ResponseEntity<Void> logoutSite(@PathVariable("siteKey") String siteKey) {
+
         return ResponseEntity.ok().build();
     }
 

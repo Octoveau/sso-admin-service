@@ -1,6 +1,8 @@
 package octoveau.sso.admin.web.rest.request;
 
 import lombok.Data;
+import octoveau.sso.admin.entity.User;
+import org.springframework.beans.BeanUtils;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
@@ -30,5 +32,12 @@ public class UserRegisterRequest {
     @Email(message = "邮箱格式不对")
     @Size(max = 40)
     private String email;
+
+    public User toEntity() {
+        User user = new User();
+        BeanUtils.copyProperties(this, user);
+
+        return user;
+    }
 
 }

@@ -2,6 +2,8 @@ package octoveau.sso.admin.service;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import octoveau.sso.admin.cache.SiteCache;
+import octoveau.sso.admin.cache.SiteTokenCache;
 import octoveau.sso.admin.constant.CommonConstants;
 import octoveau.sso.admin.constant.UserRoleConstants;
 import octoveau.sso.admin.dto.*;
@@ -10,8 +12,8 @@ import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.exception.UnauthorizedAccessException;
 import octoveau.sso.admin.properties.SSOAuthProperties;
 import octoveau.sso.admin.security.JwtUtils;
-import octoveau.sso.admin.cache.SiteTicketCache;
 import octoveau.sso.admin.util.IDGeneratorUtil;
+import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
 import octoveau.sso.admin.web.rest.request.SSOTokenRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,7 @@ public class SSOAuthService {
     private SSOAuthProperties ssoAuthProperties;
 
     private final SSOSiteTicketStorage ssoSiteTicketStorage = new SSOSiteTicketStorage();
+    private final SSOSiteTokenStorage ssoSiteTokenStorage = new SSOSiteTokenStorage();
 
     /**
      * 用户登录认证
@@ -99,66 +102,98 @@ public class SSOAuthService {
         SecurityContextHolder.clearContext();
     }
 
-    public SSOSiteTicketDTO getTicketAndCache(String siteKey) {
-        SiteTicketCache siteTicketCache = this.generateSiteTicketCache(siteKey);
+    public SSOSiteTicketDTO getTicketAndCacheSite(String siteKey, String currentUser) {
         String ticket = IDGeneratorUtil.generateUUID();
+
+        SiteCache siteCache = this.generateSiteCache(siteKey, currentUser);
         // 将ticket关联的cache进行缓存
-        ssoSiteTicketStorage.cacheSiteTicket(siteKey, siteTicketCache);
+        ssoSiteTicketStorage.cacheSite(ticket, siteCache);
 
         SSOSiteTicketDTO siteTicketDTO = new SSOSiteTicketDTO();
         siteTicketDTO.setTicket(ticket);
-        siteTicketDTO.setCallbackUrl(siteTicketCache.getCallbackUrl());
+        siteTicketDTO.setCallbackUrl(siteCache.getCallbackUrl());
 
         return siteTicketDTO;
     }
 
-    public SSOSiteTokenDTO getSiteToken(SSOTokenRequest tokenRequest) {
-        SiteTicketCache siteTicketCache = ssoSiteTicketStorage.getCache(tokenRequest.getTicket());
-        if (Objects.isNull(siteTicketCache)) {
+    public SSOSiteTokenDTO getSiteTokenAndCache(SSOTokenRequest tokenRequest) {
+        if (StringUtils.isEmpty(tokenRequest.getTicket())) {
             throw new UnauthorizedAccessException("Error ticket");
         }
-        if (!StringUtils.equals(siteTicketCache.getSiteKey(), tokenRequest.getSiteKey())
-                || !StringUtils.equals(siteTicketCache.getSiteSecret(), tokenRequest.getSiteSecret())) {
+        SiteCache siteCache = ssoSiteTicketStorage.getCache(tokenRequest.getTicket());
+        if (Objects.isNull(siteCache)) {
+            throw new UnauthorizedAccessException("Error ticket or expired");
+        }
+        if (!StringUtils.equals(siteCache.getSiteKey(), tokenRequest.getSiteKey())
+                || !StringUtils.equals(siteCache.getSiteSecret(), tokenRequest.getSiteSecret())) {
             throw new UnauthorizedAccessException("Invalid SiteKey or SiteSecret");
         }
         long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
         long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
         Instant now = Instant.now();
+        // 构建SiteToken
+        SSOSiteTokenDTO ssoSiteToken = new SSOSiteTokenDTO();
+        ssoSiteToken.setToken(siteCache.getToken());
+        ssoSiteToken.setExpireSeconds(tokenTTL);
+        ssoSiteToken.setExpires(now.plusSeconds(tokenTTL));
+        ssoSiteToken.setRefreshToken(siteCache.getRefreshToken());
+        ssoSiteToken.setRefreshTokenExpireSeconds(refreshTokenTTL);
+        ssoSiteToken.setRefreshTokenExpires(now.plusSeconds(refreshTokenTTL));
 
-        SSOSiteTokenDTO ssoTokenInfoDTO = new SSOSiteTokenDTO();
-        ssoTokenInfoDTO.setToken(siteTicketCache.getToken());
-        ssoTokenInfoDTO.setExpireSeconds(tokenTTL);
-        ssoTokenInfoDTO.setExpires(now.plusSeconds(tokenTTL));
-        ssoTokenInfoDTO.setRefreshToken(siteTicketCache.getRefreshToken());
-        ssoTokenInfoDTO.setRefreshTokenExpireSeconds(refreshTokenTTL);
-        ssoTokenInfoDTO.setRefreshTokenExpires(now.plusSeconds(refreshTokenTTL));
+        // 缓存siteToken
+        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteToken, siteCache.getCurrentUserId());
+        ssoSiteTokenStorage.cacheSiteToken(siteCache.getToken(), siteTokenCache);
 
-        return ssoTokenInfoDTO;
+        return ssoSiteToken;
     }
 
-    public SSOSiteTokenDTO refreshToken() {
+    public SSOSiteTokenDTO refreshToken(SSOTokenRefreshRequest tokenRefreshRequest) {
         return null;
     }
 
-    public void getUserByToken(String token) {
-     
+    public UserDTO getUserByToken(String token) {
+        if (StringUtils.isEmpty(token)) {
+            throw new UnauthorizedAccessException("Error token");
+        }
+        SiteTokenCache siteTokenCache = ssoSiteTokenStorage.getCache(token);
+        if (Objects.isNull(siteTokenCache) || Instant.now().compareTo(siteTokenCache.getExpires()) > 0) {
+            throw new UnauthorizedAccessException("Error token or expired");
+        }
+        Optional<User> userOptional = userService.getUserByName(siteTokenCache.getCurrentUserName());
+        if (!userOptional.isPresent()) {
+            throw new UnauthorizedAccessException("User does not exist or token expired");
+        }
+        User user = userOptional.get();
+        return user.toDTO();
     }
 
-    private SiteTicketCache generateSiteTicketCache(String siteKey) {
+    private SiteCache generateSiteCache(String siteKey, String currentUser) {
         Optional<SiteDTO> siteOptional = siteService.getSite(siteKey);
         if (!siteOptional.isPresent()) {
             throw new NotFoundException("Site not exists");
         }
         SiteDTO siteDTO = siteOptional.get();
-        SiteTicketCache siteTicketCache = new SiteTicketCache();
-        siteTicketCache.setSiteName(siteDTO.getSiteName());
-        siteTicketCache.setSiteKey(siteDTO.getSiteKey());
-        siteTicketCache.setSiteSecret(siteDTO.getSiteSecret());
-        siteTicketCache.setCallbackUrl(siteDTO.getCallbackUrl());
-        siteTicketCache.setToken(String.format("%s%s", IDGeneratorUtil.generateUUID(), IDGeneratorUtil.generateUUID()));
-        siteTicketCache.setRefreshToken(IDGeneratorUtil.generateUUID());
+        SiteCache siteCache = new SiteCache();
+        siteCache.setCurrentUserId(currentUser);
+        siteCache.setSiteName(siteDTO.getSiteName());
+        siteCache.setSiteKey(siteDTO.getSiteKey());
+        siteCache.setSiteSecret(siteDTO.getSiteSecret());
+        siteCache.setCallbackUrl(siteDTO.getCallbackUrl());
+        siteCache.setToken(String.format("%s%s", IDGeneratorUtil.generateUUID(), IDGeneratorUtil.generateUUID()));
+        siteCache.setRefreshToken(IDGeneratorUtil.generateUUID());
 
-        return siteTicketCache;
+        return siteCache;
+    }
+
+    private SiteTokenCache generateSiteTokenCache(SSOSiteTokenDTO ssoSiteToken, String currentUserName) {
+        SiteTokenCache siteTokenCache = new SiteTokenCache();
+        siteTokenCache.setCurrentUserName(currentUserName);
+        siteTokenCache.setToken(ssoSiteToken.getToken());
+        siteTokenCache.setExpires(ssoSiteToken.getExpires());
+        siteTokenCache.setRefreshToken(ssoSiteToken.getRefreshToken());
+        siteTokenCache.setRefreshTokenExpires(ssoSiteToken.getRefreshTokenExpires());
+
+        return siteTokenCache;
     }
 
     private Long normalizeLong(Long value, Long defaultValue) {
@@ -170,42 +205,50 @@ public class SSOAuthService {
 
     private class SSOSiteTicketStorage {
 
-        private final Cache<String, SiteTicketCache> ticketCache;
+        /**
+         * Cache<#ticket, SiteCache>
+         */
+        private final Cache<String, SiteCache> ticketCache;
 
         private SSOSiteTicketStorage() {
             long ticketTTL = normalizeLong(ssoAuthProperties.getSiteTicketTtl(), CommonConstants.DEFAULT_TICKET_TTL);
             ticketCache = CacheBuilder.newBuilder()
+                    .maximumSize(100)
                     .expireAfterWrite(ticketTTL, TimeUnit.SECONDS)
                     .build();
         }
 
-        void cacheSiteTicket(String ticket, SiteTicketCache siteTicketCache) {
-            ticketCache.put(ticket, siteTicketCache);
+        void cacheSite(String ticket, SiteCache siteCache) {
+            ticketCache.put(ticket, siteCache);
         }
 
-        SiteTicketCache getCache(String ticket) {
+        SiteCache getCache(String ticket) {
             return ticketCache.getIfPresent(ticket);
         }
     }
 
-
     private class SSOSiteTokenStorage {
 
-        private final Cache<String, SiteTicketCache> ticketCache;
+        /**
+         * Cache<#token, SiteTokenCache>
+         */
+        private final Cache<String, SiteTokenCache> tokenCache;
 
         private SSOSiteTokenStorage() {
             long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
-            ticketCache = CacheBuilder.newBuilder()
-                    .expireAfterWrite(tokenTTL, TimeUnit.SECONDS)
+            long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
+            tokenCache = CacheBuilder.newBuilder()
+                    .maximumSize(100)
+                    .expireAfterWrite(Math.max(tokenTTL, refreshTokenTTL), TimeUnit.SECONDS)
                     .build();
         }
 
-        void cacheSiteToken(String ticket, SiteTicketCache siteTicketCache) {
-            ticketCache.put(ticket, siteTicketCache);
+        void cacheSiteToken(String token, SiteTokenCache siteTokenCache) {
+            tokenCache.put(token, siteTokenCache);
         }
 
-        SiteTicketCache getCache(String ticket) {
-            return ticketCache.getIfPresent(ticket);
+        SiteTokenCache getCache(String token) {
+            return tokenCache.getIfPresent(token);
         }
     }
 

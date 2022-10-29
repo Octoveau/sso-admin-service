@@ -3,10 +3,10 @@ package octoveau.sso.admin.web.rest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import octoveau.sso.admin.dto.*;
+import octoveau.sso.admin.security.SecurityUtils;
 import octoveau.sso.admin.service.SSOAuthService;
 import octoveau.sso.admin.web.rest.request.SSOTicketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -39,7 +39,9 @@ public class SSOAuthResource {
     @PostMapping("/ticket")
     @ApiOperation(value = "获取站点的ticket")
     public ResponseDTO<SSOSiteTicketDTO> getSSOTicketBySiteKey(@RequestBody SSOTicketRequest ticketRequest) {
-        SSOSiteTicketDTO ticketAndCache = ssoAuthService.getTicketAndCache(ticketRequest.getSiteKey());
+        String userLogin = SecurityUtils.getCurrentUserLogin().orElse("system");
+        SSOSiteTicketDTO ticketAndCache =
+                ssoAuthService.getTicketAndCacheSite(ticketRequest.getSiteKey(), userLogin);
         return ResponseDTO.ok(ticketAndCache);
     }
 

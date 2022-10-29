@@ -1,5 +1,8 @@
 package octoveau.sso.admin.entity;
 
+import octoveau.sso.admin.dto.UserDTO;
+import org.springframework.beans.BeanUtils;
+
 import javax.persistence.*;
 
 /**
@@ -17,7 +20,7 @@ public class User extends AbstractAuditingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_name", columnDefinition="varchar(30)", nullable = false, unique = true)
+    @Column(name = "user_name", columnDefinition = "varchar(30)", nullable = false, unique = true)
     private String userName;
 
     @Column(name = "nick_name", columnDefinition = "varchar(30)")
@@ -28,6 +31,14 @@ public class User extends AbstractAuditingEntity {
 
     @Column(name = "email", columnDefinition = "varchar(40)", nullable = false)
     private String email;
+
+
+    public UserDTO toDTO() {
+        UserDTO user = new UserDTO();
+        BeanUtils.copyProperties(this, user);
+        return user;
+    }
+
 
     public Long getId() {
         return id;

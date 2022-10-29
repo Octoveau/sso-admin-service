@@ -4,9 +4,7 @@ import octoveau.sso.admin.dto.UserDTO;
 import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.entity.UserRole;
 import octoveau.sso.admin.exception.AlreadyExistsException;
-import octoveau.sso.admin.exception.ServiceException;
 import octoveau.sso.admin.repository.UserRepository;
-import octoveau.sso.admin.service.mapper.UserMapper;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,9 +26,6 @@ import java.util.stream.Collectors;
 public class UserService {
 
     @Autowired
-    private UserMapper userMapper;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -46,7 +41,7 @@ public class UserService {
         if (userOptional.isPresent()) {
             throw new AlreadyExistsException("Save failed, the user name already exist.");
         }
-        User user = userMapper.convertOfUserRegisterDTO(dto);
+        User user = dto.toEntity();
         // 将登录密码进行加密
         String cryptPassword = bCryptPasswordEncoder.encode(dto.getPassword());
         user.setPassword(cryptPassword);
