@@ -17,21 +17,15 @@ import javax.validation.constraints.Size;
 public class UserRegisterRequest {
 
     @NotBlank
-    @Size(min = 4, max = 30)
-    private String userName;
+    private String phone;
 
     @NotBlank
     @Size(min = 4, max = 30)
     private String nickName;
 
     @NotBlank
-    @Size(min = 6, max = 15)
+    @Size(min = 6, max = 68)
     private String password;
-
-    @NotBlank
-    @Email(message = "邮箱格式不对")
-    @Size(max = 40)
-    private String email;
 
     public User toEntity() {
         User user = new User();

@@ -30,12 +30,6 @@ public class SSOAuthResource {
         return ResponseDTO.ok(jwtUser);
     }
 
-    @GetMapping("/current/loginUser")
-    @ApiOperation(value = "获取当前登录用户")
-    public ResponseDTO<UserDTO> getCurrentLoginUser() {
-        return ResponseDTO.ok(null);
-    }
-
     @PostMapping("/ticket")
     @ApiOperation(value = "获取站点的ticket")
     public ResponseDTO<SSOSiteTicketDTO> getSSOTicketBySiteKey(@RequestBody SSOTicketRequest ticketRequest) {

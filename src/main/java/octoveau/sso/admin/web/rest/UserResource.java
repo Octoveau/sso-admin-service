@@ -4,11 +4,9 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import octoveau.sso.admin.dto.ResponseDTO;
 import octoveau.sso.admin.dto.UserDTO;
-import octoveau.sso.admin.exception.ServiceException;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import octoveau.sso.admin.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,9 +28,8 @@ public class UserResource {
     @GetMapping("/{userName}")
     @ApiOperation(value = "根据用户名获取用户信息")
     public ResponseDTO<UserDTO> getUser(@PathVariable String userName) {
-        throw new ServiceException("sssss");
-        //UserDTO userDTO = userService.getUserInfoByName(userName);
-        //return ResponseDTO.ok(userDTO);
+        UserDTO userDTO = userService.getUserInfoByPhone(userName);
+        return ResponseDTO.ok(userDTO);
     }
 
     @PostMapping("/register")

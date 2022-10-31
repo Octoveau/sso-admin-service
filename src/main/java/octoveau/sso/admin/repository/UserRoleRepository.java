@@ -13,8 +13,8 @@ import java.util.List;
  */
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
-    List<UserRole> findByUserName(String userName);
+    List<UserRole> findByPhone(String phone);
 
     @Modifying
-    void deleteByUserName(String userName);
+    void deleteByPhone(String phone);
 }

@@ -18,8 +18,6 @@ import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
 import octoveau.sso.admin.web.rest.request.SSOTokenRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -64,7 +62,7 @@ public class SSOAuthService {
         String password = userLogin.getPassword();
 
         // 根据登录名获取用户信息
-        Optional<User> userOptional = userService.getUserByName(userName);
+        Optional<User> userOptional = userService.getUserByPhone(userName);
         if (!userOptional.isPresent()) {
             throw new UsernameNotFoundException("User not found with userName: " + userName);
         }
@@ -73,7 +71,6 @@ public class SSOAuthService {
         if (!StringUtils.equals(password, user.getPassword())) {
             throw new BadCredentialsException("The user name or password error.");
         }
-
         List<String> roles = userService.listUserRoles(userName);
         // 如果用户角色为空，则默认赋予 ROLE_USER 角色
         if (CollectionUtils.isEmpty(roles)) {
@@ -87,13 +84,10 @@ public class SSOAuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         // 用户信息
-        UserDTO userDTO = new UserDTO();
-        userDTO.setUserName(userName);
-        userDTO.setEmail(user.getEmail());
+        UserDTO userDTO = user.toDTO();
         userDTO.setRoles(roles);
 
         return new JwtUserDTO(token, userDTO);
-
     }
 
     /**
@@ -168,12 +162,7 @@ public class SSOAuthService {
         if (Objects.isNull(siteTokenCache) || Instant.now().compareTo(siteTokenCache.getExpires()) > 0) {
             throw new UnauthorizedAccessException("Error token or expired");
         }
-        Optional<User> userOptional = userService.getUserByName(siteTokenCache.getCurrentUserName());
-        if (!userOptional.isPresent()) {
-            throw new UnauthorizedAccessException("User does not exist or token expired");
-        }
-        User user = userOptional.get();
-        return user.toDTO();
+        return userService.getUserInfoByPhone(siteTokenCache.getCurrentUserName());
     }
 
     private SiteCache generateSiteCache(String siteKey, String currentUser) {

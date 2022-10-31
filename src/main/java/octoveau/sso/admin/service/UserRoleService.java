@@ -19,12 +19,12 @@ public class UserRoleService {
     @Autowired
     private UserRoleRepository userRoleRepository;
 
-    public List<UserRole> listUserRoles(String userName) {
-        return userRoleRepository.findByUserName(userName);
+    public List<UserRole> listUserRoles(String phone) {
+        return userRoleRepository.findByPhone(phone);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void deleteByUserName(String userName) {
-        userRoleRepository.deleteByUserName(userName);
+    public void deleteByPhone(String phone) {
+        userRoleRepository.deleteByPhone(phone);
     }
 }

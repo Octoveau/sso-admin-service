@@ -1,5 +1,7 @@
 package octoveau.sso.admin.entity;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import octoveau.sso.admin.dto.UserDTO;
 import org.springframework.beans.BeanUtils;
 
@@ -10,8 +12,10 @@ import javax.persistence.*;
  *
  * @author yifanzheng
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "t_user")
+@Table(name = "user")
 public class User extends AbstractAuditingEntity {
 
     private static final long serialVersionUID = 3340373364530753417L;
@@ -20,8 +24,8 @@ public class User extends AbstractAuditingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_name", columnDefinition = "varchar(30)", nullable = false, unique = true)
-    private String userName;
+    @Column(name = "phone", columnDefinition = "char(11)", nullable = false, unique = true)
+    private String phone;
 
     @Column(name = "nick_name", columnDefinition = "varchar(30)")
     private String nickName;
@@ -29,9 +33,8 @@ public class User extends AbstractAuditingEntity {
     @Column(name = "password", columnDefinition = "varchar(68)", nullable = false)
     private String password;
 
-    @Column(name = "email", columnDefinition = "varchar(40)", nullable = false)
-    private String email;
-
+    @Column(name = "active")
+    private Boolean active = true;
 
     public UserDTO toDTO() {
         UserDTO user = new UserDTO();
@@ -39,44 +42,4 @@ public class User extends AbstractAuditingEntity {
         return user;
     }
 
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getNickName() {
-        return nickName;
-    }
-
-    public void setNickName(String nickName) {
-        this.nickName = nickName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 }

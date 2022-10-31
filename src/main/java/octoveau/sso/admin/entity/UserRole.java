@@ -1,5 +1,8 @@
 package octoveau.sso.admin.entity;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import javax.persistence.*;
 
 /**
@@ -7,6 +10,8 @@ import javax.persistence.*;
  *
  * @author yifanzheng
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "user_role")
 public class UserRole extends AbstractAuditingEntity {
@@ -17,33 +22,9 @@ public class UserRole extends AbstractAuditingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_name", nullable = false)
-    private String userName;
+    @Column(name = "phone", nullable = false)
+    private String phone;
 
     @Column(name = "role", length = 15, nullable = false)
     private String role;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
 }

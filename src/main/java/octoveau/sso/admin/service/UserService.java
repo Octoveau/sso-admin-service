@@ -9,12 +9,13 @@ import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -29,65 +30,60 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    @Autowired
     private UserRoleService userRoleService;
+
+    private static final Pattern phone_pattern = Pattern.compile("^1[34578]\\d{9}$");
 
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterRequest dto) {
+        Matcher phoneMatcher = phone_pattern.matcher(dto.getPhone());
+        if (!phoneMatcher.matches()) {
+           throw new IllegalArgumentException("Invalid phone");
+        }
         // 预检查用户名是否存在
-        Optional<User> userOptional = this.getUserByName(dto.getUserName());
+        Optional<User> userOptional = this.getUserByPhone(dto.getPhone());
         if (userOptional.isPresent()) {
-            throw new AlreadyExistsException("Save failed, the user name already exist.");
+            throw new AlreadyExistsException("Register failed, the user already exist.");
         }
         User user = dto.toEntity();
-        // 将登录密码进行加密
-        String cryptPassword = bCryptPasswordEncoder.encode(dto.getPassword());
-        user.setPassword(cryptPassword);
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
             // 如果预检查没有检查到重复，就利用数据库的完整性检查
-            throw new AlreadyExistsException("Save failed, the user name already exist.");
-
+            throw new AlreadyExistsException("Register failed, the user already exist.");
         }
     }
 
-    public Optional<User> getUserByName(String userName) {
-        return userRepository.findByUserName(userName);
-
+    public Optional<User> getUserByPhone(String phone) {
+        return userRepository.findByPhone(phone);
     }
 
-    public UserDTO getUserInfoByName(String userName) {
-        Optional<User> userOptional = this.getUserByName(userName);
+    public UserDTO getUserInfoByPhone(String phone) throws UsernameNotFoundException {
+        Optional<User> userOptional = this.getUserByPhone(phone);
         if (!userOptional.isPresent()) {
-            throw new UsernameNotFoundException("User not found with user name: " + userName);
+            throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
         // 获取用户角色
-        List<String> roles = this.listUserRoles(userName);
-        User user = userOptional.get();
+        List<String> roles = this.listUserRoles(phone);
         // 设置用户信息
-        UserDTO userDTO = new UserDTO();
-        userDTO.setUserName(user.getUserName());
-        userDTO.setEmail(user.getEmail());
+        UserDTO userDTO = userOptional.get().toDTO();
         userDTO.setRoles(roles);
 
         return userDTO;
     }
 
-    public List<String> listUserRoles(String userName) {
-        return userRoleService.listUserRoles(userName)
+    public List<String> listUserRoles(String phone) {
+        return userRoleService.listUserRoles(phone)
                 .stream()
                 .map(UserRole::getRole)
                 .collect(Collectors.toList());
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void delete(String userName) {
+    public void delete(String phone) {
         // 删除用户角色信息
-        userRoleService.deleteByUserName(userName);
+        userRoleService.deleteByPhone(phone);
         // 删除用户基本信息
-        userRepository.deleteByUserName(userName);
+        userRepository.deleteByPhone(phone);
     }
 }

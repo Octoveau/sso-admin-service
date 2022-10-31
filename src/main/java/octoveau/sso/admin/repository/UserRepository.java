@@ -13,8 +13,8 @@ import java.util.Optional;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByUserName(String userName);
+    Optional<User> findByPhone(String phone);
 
     @Modifying
-    void deleteByUserName(String userName);
+    void deleteByPhone(String phone);
 }
