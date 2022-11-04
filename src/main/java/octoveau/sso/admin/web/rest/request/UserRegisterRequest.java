@@ -19,7 +19,6 @@ public class UserRegisterRequest {
     @NotBlank
     private String phone;
 
-    @NotBlank
     @Size(min = 4, max = 30)
     private String nickName;
 

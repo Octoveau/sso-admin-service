@@ -2,6 +2,7 @@ package octoveau.sso.admin.dto;
 
 import lombok.Data;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -19,4 +20,6 @@ public class UserDTO {
     private Boolean active;
 
     private List<String> roles;
+
+    private Instant createDate;
 }

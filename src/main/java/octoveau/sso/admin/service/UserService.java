@@ -4,14 +4,18 @@ import octoveau.sso.admin.dto.UserDTO;
 import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.entity.UserRole;
 import octoveau.sso.admin.exception.AlreadyExistsException;
+import octoveau.sso.admin.exception.BadRequestAlertException;
 import octoveau.sso.admin.repository.UserRepository;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -38,7 +42,7 @@ public class UserService {
     public void register(UserRegisterRequest dto) {
         Matcher phoneMatcher = phone_pattern.matcher(dto.getPhone());
         if (!phoneMatcher.matches()) {
-           throw new IllegalArgumentException("Invalid phone");
+           throw new BadRequestAlertException("Invalid phone");
         }
         // 预检查用户名是否存在
         Optional<User> userOptional = this.getUserByPhone(dto.getPhone());
@@ -52,6 +56,16 @@ public class UserService {
             // 如果预检查没有检查到重复，就利用数据库的完整性检查
             throw new AlreadyExistsException("Register failed, the user already exist.");
         }
+    }
+
+    public List<UserDTO> listUsers() {
+        List<User> userList = userRepository.findAll(Sort.by(Sort.Direction.DESC, "createDate"));
+        if (CollectionUtils.isEmpty(userList)) {
+            return Collections.emptyList();
+        }
+        return userList.stream()
+                .map(User::toDTO)
+                .collect(Collectors.toList());
     }
 
     public Optional<User> getUserByPhone(String phone) {

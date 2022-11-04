@@ -46,9 +46,6 @@ public class SSOAuthService {
     @Autowired
     private SiteService siteService;
 
-    @Autowired
-    private SSOAuthProperties ssoAuthProperties;
-
     private final SSOSiteTicketStorage ssoSiteTicketStorage = new SSOSiteTicketStorage();
     private final SSOSiteTokenStorage ssoSiteTokenStorage = new SSOSiteTokenStorage();
 
@@ -77,7 +74,7 @@ public class SSOAuthService {
             roles = Collections.singletonList(UserRoleConstants.ROLE_USER);
         }
         // 生成 token
-        String token = JwtUtils.generateToken(userName, roles, userLogin.getRememberMe());
+        String token = JwtUtils.generateToken(userName, roles, false);
 
         // 认证成功后，设置认证信息到 Spring Security 上下文中
         Authentication authentication = JwtUtils.getAuthentication(token);
@@ -184,8 +181,8 @@ public class SSOAuthService {
     }
 
     private SSOSiteTokenDTO generateSiteToken(String token, String refreshToken) {
-        long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
-        long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
+        long tokenTTL = CommonConstants.DEFAULT_TOKEN_TTL;
+        long refreshTokenTTL = CommonConstants.DEFAULT_REFRESH_TOKEN_TTL;
         Instant now = Instant.now();
         // 构建SiteToken
         SSOSiteTokenDTO ssoSiteToken = new SSOSiteTokenDTO();
@@ -225,10 +222,9 @@ public class SSOAuthService {
         private final Cache<String, SiteCache> ticketCache;
 
         private SSOSiteTicketStorage() {
-            SSOAuthProperties ssoAuthProperties = SSOAdminContextHelper.getBean(SSOAuthProperties.class);
-            long ticketTTL = normalizeLong(ssoAuthProperties.getSiteTicketTtl(), CommonConstants.DEFAULT_TICKET_TTL);
+            long ticketTTL = CommonConstants.DEFAULT_TICKET_TTL;
             ticketCache = CacheBuilder.newBuilder()
-                    .maximumSize(100)
+                    .maximumSize(1000)
                     .expireAfterWrite(ticketTTL, TimeUnit.SECONDS)
                     .build();
         }
@@ -250,11 +246,10 @@ public class SSOAuthService {
         private final Cache<String, SiteTokenCache> tokenCache;
 
         private SSOSiteTokenStorage() {
-            SSOAuthProperties ssoAuthProperties = SSOAdminContextHelper.getBean(SSOAuthProperties.class);
-            long tokenTTL = normalizeLong(ssoAuthProperties.getSiteTokenTtl(), CommonConstants.DEFAULT_TOKEN_TTL);
-            long refreshTokenTTL = normalizeLong(ssoAuthProperties.getSiteRefreshTokenTtl(), CommonConstants.DEFAULT_REFRESH_TOKEN_TTL);
+            long tokenTTL = CommonConstants.DEFAULT_TOKEN_TTL;
+            long refreshTokenTTL = CommonConstants.DEFAULT_REFRESH_TOKEN_TTL;
             tokenCache = CacheBuilder.newBuilder()
-                    .maximumSize(100)
+                    .maximumSize(1000)
                     .expireAfterWrite(Math.max(tokenTTL, refreshTokenTTL), TimeUnit.SECONDS)
                     .build();
         }
