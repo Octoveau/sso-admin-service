@@ -8,7 +8,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import javax.annotation.PostConstruct;
 import java.net.InetAddress;
+import java.time.Instant;
+import java.util.TimeZone;
 
 @EnableTransactionManagement
 @EnableJpaAuditing(auditorAwareRef = "springSecurityAuditorAware")
@@ -44,5 +47,12 @@ public class SSOAdminApplication {
                 hostAddress, 
                 env.getProperty("server.port"), 
                 env.getActiveProfiles());
+    }
+
+    @PostConstruct
+    void started() {
+        // 将应用程序置身于UTC时区之中，以统一不同时区的时间
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        log.info("Change time zone to UTC, current time: {}", Instant.now());
     }
 }

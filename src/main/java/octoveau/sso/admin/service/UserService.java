@@ -9,6 +9,8 @@ import octoveau.sso.admin.repository.UserRepository;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -42,7 +44,7 @@ public class UserService {
     public void register(UserRegisterRequest dto) {
         Matcher phoneMatcher = phone_pattern.matcher(dto.getPhone());
         if (!phoneMatcher.matches()) {
-           throw new BadRequestAlertException("Invalid phone");
+            throw new BadRequestAlertException("Invalid phone");
         }
         // 预检查用户名是否存在
         Optional<User> userOptional = this.getUserByPhone(dto.getPhone());
@@ -58,14 +60,9 @@ public class UserService {
         }
     }
 
-    public List<UserDTO> listUsers() {
-        List<User> userList = userRepository.findAll(Sort.by(Sort.Direction.DESC, "createDate"));
-        if (CollectionUtils.isEmpty(userList)) {
-            return Collections.emptyList();
-        }
-        return userList.stream()
-                .map(User::toDTO)
-                .collect(Collectors.toList());
+    public Page<UserDTO> queryUsers(Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(pageable);
+        return userPage.map(User::toDTO);
     }
 
     public Optional<User> getUserByPhone(String phone) {

@@ -7,7 +7,13 @@ import octoveau.sso.admin.dto.UserDTO;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import octoveau.sso.admin.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.SortDefault;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -26,12 +32,13 @@ public class UserResource {
     @Autowired
     private UserService userService;
 
-
     @GetMapping("/users")
     @ApiOperation(value = "获取所有用户")
-    public ResponseDTO<List<UserDTO>> listUsers() {
-        List<UserDTO> userDTOS = userService.listUsers();
-        return ResponseDTO.ok(userDTOS);
+    public ResponseEntity<ResponseDTO<List<UserDTO>>> listUsers(@SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<UserDTO> userPage = userService.queryUsers(pageable);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Total-Count", Long.toString(userPage.getTotalElements()));
+        return new ResponseEntity<>(ResponseDTO.ok(userPage.getContent()), headers, HttpStatus.OK);
     }
 
     @GetMapping("/users/{userPhone}")

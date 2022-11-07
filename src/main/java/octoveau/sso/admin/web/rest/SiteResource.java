@@ -36,9 +36,9 @@ public class SiteResource {
 
     @GetMapping("/sites")
     @ApiOperation(value = "查询站点列表")
-    public ResponseEntity<ResponseDTO<List<SiteDTO>>> listSites(@SortDefault.SortDefaults({
-            @SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC)
-    }) Pageable pageable, SiteQueryRequest queryParam) {
+    public ResponseEntity<ResponseDTO<List<SiteDTO>>> listSites(
+            @SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC) Pageable pageable,
+            SiteQueryRequest queryParam) {
         Page<SiteDTO> sitePage = siteService.querySites(queryParam, pageable);
 
         HttpHeaders headers = new HttpHeaders();
@@ -64,7 +64,7 @@ public class SiteResource {
     @PutMapping("/sites/{siteKey}")
     @ApiOperation(value = "更新站点信息")
     public ResponseDTO<Void> updateSite(@PathVariable("siteKey") String siteKey,
-                                           @RequestBody SiteRequest siteRequest) {
+                                        @RequestBody SiteRequest siteRequest) {
         siteService.update(siteKey, siteRequest);
         return ResponseDTO.ok();
     }
