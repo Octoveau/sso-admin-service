@@ -4,6 +4,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import octoveau.sso.admin.dto.ResponseDTO;
 import octoveau.sso.admin.dto.SiteDTO;
+import octoveau.sso.admin.entity.PageObject;
 import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.service.SiteService;
 import octoveau.sso.admin.web.rest.request.SiteQueryRequest;
@@ -36,14 +37,13 @@ public class SiteResource {
 
     @GetMapping("/sites")
     @ApiOperation(value = "查询站点列表")
-    public ResponseEntity<ResponseDTO<List<SiteDTO>>> listSites(
+    public ResponseDTO<PageObject<SiteDTO>> listSites(
             @SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC) Pageable pageable,
             SiteQueryRequest queryParam) {
         Page<SiteDTO> sitePage = siteService.querySites(queryParam, pageable);
+        PageObject<SiteDTO> pageObject = PageObject.of(sitePage.getTotalElements(), sitePage.getContent());
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("X-Total-Count", Long.toString(sitePage.getTotalElements()));
-        return new ResponseEntity<>(ResponseDTO.ok(sitePage.getContent()), headers, HttpStatus.OK);
+        return ResponseDTO.ok(pageObject);
     }
 
     @GetMapping("/sites/{siteKey}/info")

@@ -2,7 +2,6 @@ package octoveau.sso.admin.service;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import octoveau.sso.admin.SSOAdminContextHelper;
 import octoveau.sso.admin.cache.SiteCache;
 import octoveau.sso.admin.cache.SiteTokenCache;
 import octoveau.sso.admin.constant.CommonConstants;
@@ -11,7 +10,6 @@ import octoveau.sso.admin.dto.*;
 import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.exception.UnauthorizedAccessException;
-import octoveau.sso.admin.properties.SSOAuthProperties;
 import octoveau.sso.admin.security.JwtUtils;
 import octoveau.sso.admin.util.IDGeneratorUtil;
 import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
@@ -55,7 +53,7 @@ public class SSOAuthService {
      * @param userLogin 用户登录信息
      */
     public JwtUserDTO authLogin(UserLoginDTO userLogin) {
-        String userName = userLogin.getUserName();
+        String userName = userLogin.getPhone();
         String password = userLogin.getPassword();
 
         // 根据登录名获取用户信息
