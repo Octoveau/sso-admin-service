@@ -5,6 +5,7 @@ import octoveau.sso.admin.constant.SiteState;
 import octoveau.sso.admin.dto.SiteBasicDTO;
 import octoveau.sso.admin.dto.SiteDTO;
 import octoveau.sso.admin.entity.Site;
+import octoveau.sso.admin.exception.AlreadyExistsException;
 import octoveau.sso.admin.exception.BadRequestAlertException;
 import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.exception.ServiceException;
@@ -15,6 +16,7 @@ import octoveau.sso.admin.web.rest.request.SiteRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -66,18 +68,12 @@ public class SiteService {
 
         try {
             siteRepository.save(site);
-        } catch (Exception e) {
-            Throwable cause = e.getCause();
+        } catch (DataIntegrityViolationException e) {
             // 判断是否是约束异常
-            if (cause instanceof ConstraintViolationException) {
-                ConstraintViolationException ex = (ConstraintViolationException) cause;
-                // 判断约束异常错误码是否相同
-                if (Objects.equals(ex.getErrorCode(), 2627)) {
-                    throw new BadRequestAlertException(String.format(
-                            "The Site[%s] already exists.",
-                            siteRequest.getSiteName()));
-                }
-            }
+            throw new AlreadyExistsException(String.format(
+                    "The Site[%s] already exists.",
+                    siteRequest.getSiteName()));
+        } catch (Exception e) {
             throw new ServiceException(String.format("Save Site[%s] failed", siteRequest.getSiteName()), e);
         }
     }
@@ -94,19 +90,12 @@ public class SiteService {
         site.setLastModifiedDate(Instant.now());
         try {
             siteRepository.save(site);
+        } catch (DataIntegrityViolationException e) {
+            throw new AlreadyExistsException(String.format(
+                    "The Site[%s] already exists.",
+                    siteRequest.getSiteName()));
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            // 判断是否是约束异常
-            if (cause instanceof ConstraintViolationException) {
-                ConstraintViolationException ex = (ConstraintViolationException) cause;
-                // 判断约束异常错误码是否相同
-                if (Objects.equals(ex.getErrorCode(), 2627)) {
-                    throw new BadRequestAlertException(String.format(
-                            "The Site[%s] already exists.",
-                            siteRequest.getSiteName()));
-                }
-            }
-            throw new ServiceException(String.format("Save Site[%s] failed", siteRequest.getSiteName()), e);
+            throw new ServiceException(String.format("Update Site[%s] failed", siteRequest.getSiteName()), e);
         }
     }
 

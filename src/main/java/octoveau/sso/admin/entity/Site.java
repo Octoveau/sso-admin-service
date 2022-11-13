@@ -18,7 +18,7 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "site")
-@SQLDelete(sql = "UPDATE synchronizer SET is_deleted = 1 WHERE id = ?")
+@SQLDelete(sql = "UPDATE site SET is_deleted = 1 WHERE id = ?")
 @Where(clause = "is_deleted = 0 OR is_deleted IS NULL")
 public class Site extends AbstractAuditingEntity {
 
