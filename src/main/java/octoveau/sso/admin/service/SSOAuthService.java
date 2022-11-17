@@ -1,7 +1,7 @@
 package octoveau.sso.admin.service;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import octoveau.sso.admin.api.SMSRequestDTO;
+import octoveau.sso.admin.api.SMSYunPianAPI;
 import octoveau.sso.admin.cache.SiteCache;
 import octoveau.sso.admin.cache.SiteTokenCache;
 import octoveau.sso.admin.constant.CommonConstants;
@@ -11,6 +11,9 @@ import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.exception.UnauthorizedAccessException;
 import octoveau.sso.admin.security.JwtUtils;
+import octoveau.sso.admin.storage.SMSCodeStorage;
+import octoveau.sso.admin.storage.SSOSiteTicketStorage;
+import octoveau.sso.admin.storage.SSOSiteTokenStorage;
 import octoveau.sso.admin.util.IDGeneratorUtil;
 import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
 import octoveau.sso.admin.web.rest.request.SSOTokenRequest;
@@ -28,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 用户认证服务
@@ -44,8 +46,12 @@ public class SSOAuthService {
     @Autowired
     private SiteService siteService;
 
-    private final SSOSiteTicketStorage ssoSiteTicketStorage = new SSOSiteTicketStorage();
-    private final SSOSiteTokenStorage ssoSiteTokenStorage = new SSOSiteTokenStorage();
+    @Autowired
+    private SMSYunPianAPI smsYunPianAPI;
+
+    private static final SSOSiteTicketStorage ssoSiteTicketStorage = new SSOSiteTicketStorage();
+    private static final SSOSiteTokenStorage ssoSiteTokenStorage = new SSOSiteTokenStorage();
+    private static final SMSCodeStorage smsCodeStorage = new SMSCodeStorage();
 
     /**
      * 用户登录认证
@@ -96,6 +102,14 @@ public class SSOAuthService {
 
     public void logoutBySiteToken(String token) {
         ssoSiteTokenStorage.remove(token);
+    }
+
+    public void sendShortMessage(String phone) {
+        int codeNum = (int) Math.floor(Math.random() * (9999 - 1000)) + 1000;
+        SMSRequestDTO smsRequestDTO = SMSRequestDTO.build(phone, String.valueOf(codeNum));
+        smsYunPianAPI.sendShortMessage(smsRequestDTO);
+        // 缓存code
+        smsCodeStorage.cacheCode(phone, String.valueOf(codeNum));
     }
 
     public SSOSiteTicketDTO getTicketAndCacheSite(String siteKey, String currentUser) {
@@ -212,57 +226,5 @@ public class SSOAuthService {
         return value;
     }
 
-    private class SSOSiteTicketStorage {
-
-        /**
-         * Cache<#ticket, SiteCache>
-         */
-        private final Cache<String, SiteCache> ticketCache;
-
-        private SSOSiteTicketStorage() {
-            long ticketTTL = CommonConstants.DEFAULT_TICKET_TTL;
-            ticketCache = CacheBuilder.newBuilder()
-                    .maximumSize(1000)
-                    .expireAfterWrite(ticketTTL, TimeUnit.SECONDS)
-                    .build();
-        }
-
-        void cacheSite(String ticket, SiteCache siteCache) {
-            ticketCache.put(ticket, siteCache);
-        }
-
-        SiteCache getCache(String ticket) {
-            return ticketCache.getIfPresent(ticket);
-        }
-    }
-
-    private class SSOSiteTokenStorage {
-
-        /**
-         * Cache<#token, SiteTokenCache>
-         */
-        private final Cache<String, SiteTokenCache> tokenCache;
-
-        private SSOSiteTokenStorage() {
-            long tokenTTL = CommonConstants.DEFAULT_TOKEN_TTL;
-            long refreshTokenTTL = CommonConstants.DEFAULT_REFRESH_TOKEN_TTL;
-            tokenCache = CacheBuilder.newBuilder()
-                    .maximumSize(1000)
-                    .expireAfterWrite(Math.max(tokenTTL, refreshTokenTTL), TimeUnit.SECONDS)
-                    .build();
-        }
-
-        void cacheSiteToken(String token, SiteTokenCache siteTokenCache) {
-            tokenCache.put(token, siteTokenCache);
-        }
-
-        SiteTokenCache getCache(String token) {
-            return tokenCache.getIfPresent(token);
-        }
-
-        void remove(String token) {
-            tokenCache.invalidate(token);
-        }
-    }
 
 }

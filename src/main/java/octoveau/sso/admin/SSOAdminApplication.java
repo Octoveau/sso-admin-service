@@ -4,9 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.net.InetAddress;
@@ -54,5 +59,13 @@ public class SSOAdminApplication {
         // 将应用程序置身于UTC时区之中，以统一不同时区的时间
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         log.info("Change time zone to UTC, current time: {}", Instant.now());
+    }
+
+    @Bean
+    @Primary
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        RestTemplate rest = builder.build();
+        rest.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        return rest;
     }
 }
