@@ -59,26 +59,26 @@ public class SSOAuthService {
      * @param userLogin 用户登录信息
      */
     public JwtUserDTO authLogin(UserLoginDTO userLogin) {
-        String userName = userLogin.getPhone();
+        String phone = userLogin.getPhone();
         String password = userLogin.getPassword();
 
         // 根据登录名获取用户信息
-        Optional<User> userOptional = userService.getUserByPhone(userName);
+        Optional<User> userOptional = userService.getUserByPhone(phone);
         if (!userOptional.isPresent()) {
-            throw new UsernameNotFoundException("User not found with userName: " + userName);
+            throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
         User user = userOptional.get();
         // 验证登录密码是否正确。如果正确，则赋予用户相应权限并生成用户认证信息
         if (!StringUtils.equals(password, user.getPassword())) {
-            throw new BadCredentialsException("The user name or password error.");
+            throw new BadCredentialsException("The phone or password error.");
         }
-        List<String> roles = userService.listUserRoles(userName);
+        List<String> roles = userService.listUserRoles(phone);
         // 如果用户角色为空，则默认赋予 ROLE_USER 角色
         if (CollectionUtils.isEmpty(roles)) {
             roles = Collections.singletonList(UserRoleConstants.ROLE_USER);
         }
         // 生成 token
-        String token = JwtUtils.generateToken(userName, roles, false);
+        String token = JwtUtils.generateToken(phone, roles, false);
 
         // 认证成功后，设置认证信息到 Spring Security 上下文中
         Authentication authentication = JwtUtils.getAuthentication(token);
@@ -86,6 +86,37 @@ public class SSOAuthService {
 
         // 用户信息
         UserDTO userDTO = user.toDTO();
+        userDTO.setRoles(roles);
+
+        return new JwtUserDTO(token, userDTO);
+    }
+
+    public JwtUserDTO authSmsLogin(UserSmsLoginDTO userSmsLogin) {
+        String phone = userSmsLogin.getPhone();
+        String smsCode = userSmsLogin.getSmsCode();
+        // 根据登录名获取用户信息
+        Optional<User> userOptional = userService.getUserByPhone(phone);
+        if (!userOptional.isPresent()) {
+            throw new UsernameNotFoundException("User not found with phone: " + phone);
+        }
+        String smsCodeCache = smsCodeStorage.getCache(phone);
+        if (StringUtils.isEmpty(smsCodeCache) || StringUtils.equals(smsCode, smsCodeCache)) {
+            throw new UnauthorizedAccessException("Invalid code or expired");
+        }
+        List<String> roles = userService.listUserRoles(phone);
+        // 如果用户角色为空，则默认赋予 ROLE_USER 角色
+        if (CollectionUtils.isEmpty(roles)) {
+            roles = Collections.singletonList(UserRoleConstants.ROLE_USER);
+        }
+        // 生成 token
+        String token = JwtUtils.generateToken(phone, roles, false);
+
+        // 认证成功后，设置认证信息到 Spring Security 上下文中
+        Authentication authentication = JwtUtils.getAuthentication(token);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // 用户信息
+        UserDTO userDTO = userOptional.get().toDTO();
         userDTO.setRoles(roles);
 
         return new JwtUserDTO(token, userDTO);
@@ -225,6 +256,4 @@ public class SSOAuthService {
         }
         return value;
     }
-
-
 }

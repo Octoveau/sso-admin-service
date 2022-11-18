@@ -30,6 +30,13 @@ public class SSOAuthResource {
         return ResponseDTO.ok(jwtUser);
     }
 
+    @PostMapping("/sms/login")
+    @ApiOperation(value = "验证码登录")
+    public ResponseDTO<JwtUserDTO> smsLogin(@RequestBody UserSmsLoginDTO userSmsLogin) {
+        JwtUserDTO jwtUserDTO = ssoAuthService.authSmsLogin(userSmsLogin);
+        return ResponseDTO.ok(jwtUserDTO);
+    }
+
     @PostMapping("/sms")
     @ApiOperation(value = "发送短信获取验证码")
     public ResponseDTO<Void> sendSMS(@RequestParam("phone") String phone) {
