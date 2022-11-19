@@ -74,7 +74,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers(white_list).permitAll()
                 // 配置登录地址
                 .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/auth/sms/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/auth/sms/login").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/sms/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                 //.antMatchers("/**").permitAll()
                 // 其他请求需验证

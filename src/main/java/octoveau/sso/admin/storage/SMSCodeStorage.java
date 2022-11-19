@@ -20,7 +20,7 @@ public class SMSCodeStorage {
     public SMSCodeStorage() {
         codeCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
-                .expireAfterWrite(60, TimeUnit.SECONDS)
+                .expireAfterWrite(300, TimeUnit.SECONDS)
                 .build();
     }
 

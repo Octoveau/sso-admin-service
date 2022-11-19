@@ -96,7 +96,7 @@ public class SSOAuthService {
             throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
         String smsCodeCache = smsService.getCodeCache(phone);
-        if (StringUtils.isEmpty(smsCodeCache) || StringUtils.equals(smsCode, smsCodeCache)) {
+        if (StringUtils.isEmpty(smsCodeCache) || !StringUtils.equals(smsCode, smsCodeCache)) {
             throw new UnauthorizedAccessException("Invalid code or expired");
         }
         List<String> roles = userService.listUserRoles(phone);
