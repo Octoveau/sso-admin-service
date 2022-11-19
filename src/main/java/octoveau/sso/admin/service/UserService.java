@@ -5,8 +5,10 @@ import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.entity.UserRole;
 import octoveau.sso.admin.exception.AlreadyExistsException;
 import octoveau.sso.admin.exception.BadRequestAlertException;
+import octoveau.sso.admin.exception.UnauthorizedAccessException;
 import octoveau.sso.admin.repository.UserRepository;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -38,6 +40,9 @@ public class UserService {
     @Autowired
     private UserRoleService userRoleService;
 
+    @Autowired
+    private SMSService smsService;
+
     private static final Pattern phone_pattern = Pattern.compile("^1[34578]\\d{9}$");
 
     @Transactional(rollbackFor = Exception.class)
@@ -45,6 +50,11 @@ public class UserService {
         Matcher phoneMatcher = phone_pattern.matcher(dto.getPhone());
         if (!phoneMatcher.matches()) {
             throw new BadRequestAlertException("Invalid phone");
+        }
+        // 验证smsCode是否有效
+        String smsCodeCache = smsService.getCodeCache(dto.getPhone());
+        if (StringUtils.isEmpty(smsCodeCache) || StringUtils.equals(dto.getSmsCode(), smsCodeCache)) {
+            throw new UnauthorizedAccessException("Invalid code or expired");
         }
         // 预检查用户名是否存在
         Optional<User> userOptional = this.getUserByPhone(dto.getPhone());
@@ -84,8 +94,7 @@ public class UserService {
     }
 
     public List<String> listUserRoles(String phone) {
-        return userRoleService.listUserRoles(phone)
-                .stream()
+        return userRoleService.listUserRoles(phone).stream()
                 .map(UserRole::getRole)
                 .collect(Collectors.toList());
     }

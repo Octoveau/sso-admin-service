@@ -37,13 +37,6 @@ public class SSOAuthResource {
         return ResponseDTO.ok(jwtUserDTO);
     }
 
-    @PostMapping("/sms")
-    @ApiOperation(value = "发送短信获取验证码")
-    public ResponseDTO<Void> sendSMS(@RequestParam("phone") String phone) {
-        ssoAuthService.sendShortMessage(phone);
-        return ResponseDTO.ok();
-    }
-
     @PostMapping("/ticket")
     @ApiOperation(value = "获取站点的ticket")
     public ResponseDTO<SSOSiteTicketDTO> getSSOTicketBySiteKey(@RequestBody SSOTicketRequest ticketRequest) {

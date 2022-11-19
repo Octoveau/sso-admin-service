@@ -1,7 +1,5 @@
 package octoveau.sso.admin.service;
 
-import octoveau.sso.admin.api.SMSRequestDTO;
-import octoveau.sso.admin.api.SMSYunPianAPI;
 import octoveau.sso.admin.cache.SiteCache;
 import octoveau.sso.admin.cache.SiteTokenCache;
 import octoveau.sso.admin.constant.CommonConstants;
@@ -11,7 +9,6 @@ import octoveau.sso.admin.entity.User;
 import octoveau.sso.admin.exception.NotFoundException;
 import octoveau.sso.admin.exception.UnauthorizedAccessException;
 import octoveau.sso.admin.security.JwtUtils;
-import octoveau.sso.admin.storage.SMSCodeStorage;
 import octoveau.sso.admin.storage.SSOSiteTicketStorage;
 import octoveau.sso.admin.storage.SSOSiteTokenStorage;
 import octoveau.sso.admin.util.IDGeneratorUtil;
@@ -47,11 +44,10 @@ public class SSOAuthService {
     private SiteService siteService;
 
     @Autowired
-    private SMSYunPianAPI smsYunPianAPI;
+    private SMSService smsService;
 
     private static final SSOSiteTicketStorage ssoSiteTicketStorage = new SSOSiteTicketStorage();
     private static final SSOSiteTokenStorage ssoSiteTokenStorage = new SSOSiteTokenStorage();
-    private static final SMSCodeStorage smsCodeStorage = new SMSCodeStorage();
 
     /**
      * 用户登录认证
@@ -99,7 +95,7 @@ public class SSOAuthService {
         if (!userOptional.isPresent()) {
             throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
-        String smsCodeCache = smsCodeStorage.getCache(phone);
+        String smsCodeCache = smsService.getCodeCache(phone);
         if (StringUtils.isEmpty(smsCodeCache) || StringUtils.equals(smsCode, smsCodeCache)) {
             throw new UnauthorizedAccessException("Invalid code or expired");
         }
@@ -133,14 +129,6 @@ public class SSOAuthService {
 
     public void logoutBySiteToken(String token) {
         ssoSiteTokenStorage.remove(token);
-    }
-
-    public void sendShortMessage(String phone) {
-        int codeNum = (int) Math.floor(Math.random() * (9999 - 1000)) + 1000;
-        SMSRequestDTO smsRequestDTO = SMSRequestDTO.build(phone, String.valueOf(codeNum));
-        smsYunPianAPI.sendShortMessage(smsRequestDTO);
-        // 缓存code
-        smsCodeStorage.cacheCode(phone, String.valueOf(codeNum));
     }
 
     public SSOSiteTicketDTO getTicketAndCacheSite(String siteKey, String currentUser) {

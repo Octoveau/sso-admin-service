@@ -47,7 +47,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     private static final String[] white_list = {
             "/app/**/*.{js,html}", "/v2/api-docs/**", "/i18n/**",
             "/test/**", "/h2/**", "/content/**", "/webjars/springfox-swagger-ui/**",
-            "/swagger-resources/**", "/swagger-ui.html"
+            "/swagger-resources/**", "/swagger-ui/**"
     };
 
     /**
@@ -74,9 +74,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers(white_list).permitAll()
                 // 配置登录地址
                 .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/auth/sms").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/auth/sms/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                .antMatchers("/**").permitAll()
+                //.antMatchers("/**").permitAll()
                 // 其他请求需验证
                 .anyRequest().authenticated()
                 .and()

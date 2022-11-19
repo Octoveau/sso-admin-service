@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -32,10 +35,14 @@ public class SMSYunPianAPI {
 
     public void sendShortMessage(SMSRequestDTO smsRequest) {
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(HttpHeaders.ACCEPT, "application/json;charset=utf-8;");
-        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded;charset=utf-8;");
+        httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        // 构建消息参数
+        MultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
+        params.add("apikey", smsRequest.getApiKey());
+        params.add("mobile", smsRequest.getMobile());
+        params.add("text", smsRequest.getText());
         // 构建HttpEntity
-        HttpEntity<SMSRequestDTO> httpEntity = new HttpEntity<>(smsRequest, httpHeaders);
+        HttpEntity<MultiValueMap> httpEntity = new HttpEntity<>(params, httpHeaders);
         for (int times = 1; ; times++) {
             try {
                 restTemplate.exchange(smsUrl, HttpMethod.POST, httpEntity, String.class);
