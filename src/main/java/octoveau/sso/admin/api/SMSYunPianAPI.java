@@ -1,5 +1,8 @@
 package octoveau.sso.admin.api;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import octoveau.sso.admin.exception.SMSException;
 import octoveau.sso.admin.util.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +15,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.zalando.problem.Status;
 
 /**
  * SMSYunPianAPI
@@ -41,23 +45,13 @@ public class SMSYunPianAPI {
         params.add("text", smsRequest.getText());
         // 构建HttpEntity
         HttpEntity<MultiValueMap> httpEntity = new HttpEntity<>(params, httpHeaders);
-        for (int times = 1; ; times++) {
-            try {
-                restTemplate.exchange(smsUrl, HttpMethod.POST, httpEntity, String.class);
-            } catch (RestClientException e) {
-                HttpClientErrorException cause = (HttpClientErrorException) e.getCause();
-                // 如果是 400 异常就不进行重试，因为参数异常重试也没用
-                if (cause.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                    log.warn(e.getMessage());
-                    return;
-                }
-                if (times <= 3) {
-                    log.warn("Call rest api error, and attempt={}/{} after 1 seconds, message: {}", times, 3, e.getMessage());
-                    ThreadUtil.sleep(1000);
-                    continue;
-                }
-                throw e;
-            }
+        try {
+            restTemplate.exchange(smsUrl, HttpMethod.POST, httpEntity, String.class);
+        } catch (RestClientException e) {
+            HttpClientErrorException ex = (HttpClientErrorException) e;
+
+            JSONObject exceptionMsg = JSON.parseObject(ex.getResponseBodyAsString());
+            throw new SMSException(exceptionMsg.getString("detail"), Status.valueOf(ex.getStatusCode().name()));
         }
     }
 }

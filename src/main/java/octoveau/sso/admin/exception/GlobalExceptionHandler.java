@@ -1,7 +1,6 @@
 package octoveau.sso.admin.exception;
 
 import octoveau.sso.admin.util.StringHelper;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
