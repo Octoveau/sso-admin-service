@@ -1,4 +1,4 @@
-package octoveau.sso.admin.dto;
+package octoveau.sso.admin.web.rest.request;
 
 import lombok.Data;
 
@@ -10,7 +10,7 @@ import javax.validation.constraints.NotBlank;
  * @author sz7v
  */
 @Data
-public class UserSmsLoginDTO {
+public class UserSmsLoginRequest {
 
     @NotBlank
     private String phone;

@@ -7,19 +7,17 @@ import octoveau.sso.admin.exception.AlreadyExistsException;
 import octoveau.sso.admin.exception.BadRequestAlertException;
 import octoveau.sso.admin.exception.UnauthorizedAccessException;
 import octoveau.sso.admin.repository.UserRepository;
+import octoveau.sso.admin.web.rest.request.UserPasswordUpdateRequest;
 import octoveau.sso.admin.web.rest.request.UserRegisterRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -70,6 +68,26 @@ public class UserService {
         }
     }
 
+    public void updateUserPassword(UserPasswordUpdateRequest passwordResetRequest) {
+        String phone = passwordResetRequest.getPhone();
+        String smsCode = passwordResetRequest.getSmsCode();
+        // 根据登录名获取用户信息
+        Optional<User> userOptional = userRepository.findByPhone(phone);
+        if (!userOptional.isPresent()) {
+            throw new UsernameNotFoundException("User not found with phone: " + phone);
+        }
+        String smsCodeCache = smsService.getCodeCache(phone);
+        if (StringUtils.isEmpty(smsCodeCache) || !StringUtils.equals(smsCode, smsCodeCache)) {
+            throw new UnauthorizedAccessException("Invalid code or expired");
+        }
+
+        User user = userOptional.get();
+        user.setPassword(passwordResetRequest.getPassword());
+        user.setLastModifiedBy(phone);
+        userRepository.save(user);
+    }
+
+
     public Page<UserDTO> queryUsers(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
         return userPage.map(User::toDTO);
@@ -79,18 +97,16 @@ public class UserService {
         return userRepository.findByPhone(phone);
     }
 
-    public UserDTO getUserInfoByPhone(String phone) throws UsernameNotFoundException {
+    public Optional<UserDTO> getUserInfoByPhone(String phone) throws UsernameNotFoundException {
         Optional<User> userOptional = this.getUserByPhone(phone);
-        if (!userOptional.isPresent()) {
-            throw new UsernameNotFoundException("User not found with phone: " + phone);
-        }
-        // 获取用户角色
-        List<String> roles = this.listUserRoles(phone);
-        // 设置用户信息
-        UserDTO userDTO = userOptional.get().toDTO();
-        userDTO.setRoles(roles);
-
-        return userDTO;
+        return userOptional.map(user -> {
+            // 获取用户角色
+            List<String> roles = this.listUserRoles(phone);
+            // 设置用户信息
+            UserDTO userDTO = user.toDTO();
+            userDTO.setRoles(roles);
+            return userDTO;
+        });
     }
 
     public List<String> listUserRoles(String phone) {

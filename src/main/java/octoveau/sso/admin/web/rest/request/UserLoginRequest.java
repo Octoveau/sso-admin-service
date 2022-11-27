@@ -1,4 +1,4 @@
-package octoveau.sso.admin.dto;
+package octoveau.sso.admin.web.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
@@ -12,7 +12,7 @@ import javax.validation.constraints.NotBlank;
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class UserLoginDTO {
+public class UserLoginRequest {
 
     @NotBlank
     private String phone;

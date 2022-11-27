@@ -12,7 +12,7 @@ import java.time.Instant;
 @Data
 public class SiteTokenCache {
 
-    private String currentUserName;
+    private String currentPhone;
 
     private String token;
 

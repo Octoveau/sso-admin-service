@@ -12,8 +12,7 @@ import octoveau.sso.admin.security.JwtUtils;
 import octoveau.sso.admin.storage.SSOSiteTicketStorage;
 import octoveau.sso.admin.storage.SSOSiteTokenStorage;
 import octoveau.sso.admin.util.IDGeneratorUtil;
-import octoveau.sso.admin.web.rest.request.SSOTokenRefreshRequest;
-import octoveau.sso.admin.web.rest.request.SSOTokenRequest;
+import octoveau.sso.admin.web.rest.request.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -54,7 +53,7 @@ public class SSOAuthService {
      *
      * @param userLogin 用户登录信息
      */
-    public JwtUserDTO authLogin(UserLoginDTO userLogin) {
+    public JwtUserDTO authLogin(UserLoginRequest userLogin) {
         String phone = userLogin.getPhone();
         String password = userLogin.getPassword();
 
@@ -87,11 +86,11 @@ public class SSOAuthService {
         return new JwtUserDTO(token, userDTO);
     }
 
-    public JwtUserDTO authSmsLogin(UserSmsLoginDTO userSmsLogin) {
+    public JwtUserDTO authSmsLogin(UserSmsLoginRequest userSmsLogin) {
         String phone = userSmsLogin.getPhone();
         String smsCode = userSmsLogin.getSmsCode();
-        // 根据登录名获取用户信息
-        Optional<User> userOptional = userService.getUserByPhone(phone);
+
+        Optional<UserDTO> userOptional = userService.getUserInfoByPhone(phone);
         if (!userOptional.isPresent()) {
             throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
@@ -99,21 +98,16 @@ public class SSOAuthService {
         if (StringUtils.isEmpty(smsCodeCache) || !StringUtils.equals(smsCode, smsCodeCache)) {
             throw new UnauthorizedAccessException("Invalid code or expired");
         }
-        List<String> roles = userService.listUserRoles(phone);
+        UserDTO userDTO = userOptional.get();
         // 如果用户角色为空，则默认赋予 ROLE_USER 角色
-        if (CollectionUtils.isEmpty(roles)) {
-            roles = Collections.singletonList(UserRoleConstants.ROLE_USER);
+        if (CollectionUtils.isEmpty(userDTO.getRoles())) {
+            userDTO.setRoles(Collections.singletonList(UserRoleConstants.ROLE_USER));
         }
         // 生成 token
-        String token = JwtUtils.generateToken(phone, roles, false);
-
+        String token = JwtUtils.generateToken(phone, userDTO.getRoles(), false);
         // 认证成功后，设置认证信息到 Spring Security 上下文中
         Authentication authentication = JwtUtils.getAuthentication(token);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // 用户信息
-        UserDTO userDTO = userOptional.get().toDTO();
-        userDTO.setRoles(roles);
 
         return new JwtUserDTO(token, userDTO);
     }
@@ -153,8 +147,7 @@ public class SSOAuthService {
         if (Objects.isNull(siteCache)) {
             throw new UnauthorizedAccessException("Error ticket or expired");
         }
-        if (!StringUtils.equals(siteCache.getSiteKey(), tokenRequest.getSiteKey())
-                || !StringUtils.equals(siteCache.getSiteSecret(), tokenRequest.getSiteSecret())) {
+        if (!StringUtils.equals(siteCache.getSiteKey(), tokenRequest.getSiteKey()) || !StringUtils.equals(siteCache.getSiteSecret(), tokenRequest.getSiteSecret())) {
             throw new UnauthorizedAccessException("Invalid SiteKey or SiteSecret");
         }
         // 构建SiteToken
@@ -169,14 +162,13 @@ public class SSOAuthService {
     public SSOSiteTokenDTO refreshToken(SSOTokenRefreshRequest tokenRefreshRequest) {
         String token = tokenRefreshRequest.getToken();
         SiteTokenCache tokenCache = ssoSiteTokenStorage.getCache(token);
-        if (Objects.isNull(tokenCache)
-                || !StringUtils.equals(tokenCache.getRefreshToken(), tokenRefreshRequest.getRefreshToken())) {
+        if (Objects.isNull(tokenCache) || !StringUtils.equals(tokenCache.getRefreshToken(), tokenRefreshRequest.getRefreshToken())) {
             throw new UnauthorizedAccessException("Invalid refresh token or expired");
         }
         // 构建SiteToken
         SSOSiteTokenDTO ssoSiteTokenDTO = generateSiteToken(tokenCache.getToken(), tokenCache.getRefreshToken());
         // 缓存siteToken
-        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteTokenDTO, tokenCache.getCurrentUserName());
+        SiteTokenCache siteTokenCache = generateSiteTokenCache(ssoSiteTokenDTO, tokenCache.getCurrentPhone());
         ssoSiteTokenStorage.cacheSiteToken(tokenCache.getToken(), siteTokenCache);
 
         return ssoSiteTokenDTO;
@@ -190,7 +182,8 @@ public class SSOAuthService {
         if (Objects.isNull(siteTokenCache) || Instant.now().compareTo(siteTokenCache.getExpires()) > 0) {
             throw new UnauthorizedAccessException("Error token or expired");
         }
-        return userService.getUserInfoByPhone(siteTokenCache.getCurrentUserName());
+        Optional<UserDTO> userInfoOpt = userService.getUserInfoByPhone(siteTokenCache.getCurrentPhone());
+        return userInfoOpt.orElseThrow(() -> new UsernameNotFoundException("User not found with phone: " + siteTokenCache.getCurrentPhone()));
     }
 
     private SiteCache generateSiteCache(String siteKey, String currentUser) {
@@ -229,7 +222,7 @@ public class SSOAuthService {
 
     private SiteTokenCache generateSiteTokenCache(SSOSiteTokenDTO ssoSiteToken, String currentUserName) {
         SiteTokenCache siteTokenCache = new SiteTokenCache();
-        siteTokenCache.setCurrentUserName(currentUserName);
+        siteTokenCache.setCurrentPhone(currentUserName);
         siteTokenCache.setToken(ssoSiteToken.getToken());
         siteTokenCache.setExpires(ssoSiteToken.getExpires());
         siteTokenCache.setRefreshToken(ssoSiteToken.getRefreshToken());

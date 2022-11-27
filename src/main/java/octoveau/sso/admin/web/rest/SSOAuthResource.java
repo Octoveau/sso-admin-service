@@ -6,6 +6,9 @@ import octoveau.sso.admin.dto.*;
 import octoveau.sso.admin.security.SecurityUtils;
 import octoveau.sso.admin.service.SSOAuthService;
 import octoveau.sso.admin.web.rest.request.SSOTicketRequest;
+import octoveau.sso.admin.web.rest.request.UserLoginRequest;
+import octoveau.sso.admin.web.rest.request.UserPasswordUpdateRequest;
+import octoveau.sso.admin.web.rest.request.UserSmsLoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +27,7 @@ public class SSOAuthResource {
 
     @PostMapping("/login")
     @ApiOperation(value = "用户登录认证")
-    public ResponseDTO<JwtUserDTO> login(@RequestBody UserLoginDTO userLogin) {
+    public ResponseDTO<JwtUserDTO> login(@RequestBody UserLoginRequest userLogin) {
         // 用户登录认证
         JwtUserDTO jwtUser = ssoAuthService.authLogin(userLogin);
         return ResponseDTO.ok(jwtUser);
@@ -32,7 +35,7 @@ public class SSOAuthResource {
 
     @PostMapping("/sms/login")
     @ApiOperation(value = "验证码登录")
-    public ResponseDTO<JwtUserDTO> smsLogin(@RequestBody UserSmsLoginDTO userSmsLogin) {
+    public ResponseDTO<JwtUserDTO> smsLogin(@RequestBody UserSmsLoginRequest userSmsLogin) {
         JwtUserDTO jwtUserDTO = ssoAuthService.authSmsLogin(userSmsLogin);
         return ResponseDTO.ok(jwtUserDTO);
     }
