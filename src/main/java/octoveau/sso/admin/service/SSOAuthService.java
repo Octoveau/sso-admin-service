@@ -119,6 +119,7 @@ public class SSOAuthService {
      */
     public void logout() {
         SecurityContextHolder.clearContext();
+        ssoSiteTokenStorage.clear();
     }
 
     public void logoutBySiteToken(String token) {

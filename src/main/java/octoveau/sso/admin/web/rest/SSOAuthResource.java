@@ -2,15 +2,19 @@ package octoveau.sso.admin.web.rest;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import octoveau.sso.admin.dto.*;
+import octoveau.sso.admin.dto.JwtUserDTO;
+import octoveau.sso.admin.dto.ResponseDTO;
+import octoveau.sso.admin.dto.SSOSiteTicketDTO;
 import octoveau.sso.admin.security.SecurityUtils;
 import octoveau.sso.admin.service.SSOAuthService;
 import octoveau.sso.admin.web.rest.request.SSOTicketRequest;
 import octoveau.sso.admin.web.rest.request.UserLoginRequest;
-import octoveau.sso.admin.web.rest.request.UserPasswordUpdateRequest;
 import octoveau.sso.admin.web.rest.request.UserSmsLoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * AuthResource

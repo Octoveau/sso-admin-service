@@ -39,4 +39,8 @@ public class SSOSiteTokenStorage {
     public void remove(String token) {
         tokenCache.invalidate(token);
     }
+
+    public void clear() {
+        tokenCache.cleanUp();
+    }
 }
