@@ -51,7 +51,7 @@ public class UserService {
         }
         // 验证smsCode是否有效
         String smsCodeCache = smsService.getCodeCache(dto.getPhone());
-        if (StringUtils.isEmpty(smsCodeCache) || StringUtils.equals(dto.getSmsCode(), smsCodeCache)) {
+        if (StringUtils.isEmpty(smsCodeCache) || !StringUtils.equals(dto.getSmsCode(), smsCodeCache)) {
             throw new UnauthorizedAccessException("Invalid code or expired");
         }
         // 预检查用户名是否存在
@@ -76,17 +76,19 @@ public class UserService {
         if (!userOptional.isPresent()) {
             throw new UsernameNotFoundException("User not found with phone: " + phone);
         }
+        User user = userOptional.get();
+        if (StringUtils.equals(passwordResetRequest.getPassword(), user.getPassword())) {
+            throw new AlreadyExistsException("Same as current password");
+        }
         String smsCodeCache = smsService.getCodeCache(phone);
         if (StringUtils.isEmpty(smsCodeCache) || !StringUtils.equals(smsCode, smsCodeCache)) {
             throw new UnauthorizedAccessException("Invalid code or expired");
         }
 
-        User user = userOptional.get();
         user.setPassword(passwordResetRequest.getPassword());
         user.setLastModifiedBy(phone);
         userRepository.save(user);
     }
-
 
     public Page<UserDTO> queryUsers(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
