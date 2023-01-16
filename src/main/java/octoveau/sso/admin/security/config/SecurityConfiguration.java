@@ -78,6 +78,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.POST, "/api/sms/**").permitAll()
                 .antMatchers(HttpMethod.PUT, "/api/users/password").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                .antMatchers("/openapi/auth/**").permitAll()
                 //.antMatchers("/**").permitAll()
                 // 其他请求需验证
                 .anyRequest().authenticated()

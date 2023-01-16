@@ -37,6 +37,9 @@ public class Site extends AbstractAuditingEntity {
     @Column(name = "callback_url", columnDefinition = "varchar(124)", nullable = false)
     private String callbackUrl;
 
+    @Column(name = "remark")
+    private String remark;
+
     @Column(name = "state", columnDefinition = "varchar(15)")
     @Enumerated(EnumType.STRING)
     private SiteState state;
@@ -149,5 +152,13 @@ public class Site extends AbstractAuditingEntity {
 
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 }
