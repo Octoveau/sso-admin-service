@@ -37,7 +37,7 @@ public class Site extends AbstractAuditingEntity {
     @Column(name = "callback_url", columnDefinition = "varchar(124)", nullable = false)
     private String callbackUrl;
 
-    @Column(name = "remark")
+    @Column(name = "remark", columnDefinition = "varchar(124)")
     private String remark;
 
     @Column(name = "state", columnDefinition = "varchar(15)")

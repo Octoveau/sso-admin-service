@@ -87,6 +87,7 @@ public class SiteService {
         Site site = siteOptional.get();
         site.setSiteName(siteRequest.getSiteName());
         site.setCallbackUrl(siteRequest.getCallbackUrl());
+        site.setRemark(siteRequest.getRemark());
         site.setLastModifiedDate(Instant.now());
         try {
             siteRepository.save(site);
@@ -107,6 +108,5 @@ public class SiteService {
         // 仅做非物理删除
         siteRepository.delete(siteOptional.get());
     }
-
 
 }
