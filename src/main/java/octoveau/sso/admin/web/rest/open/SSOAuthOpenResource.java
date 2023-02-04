@@ -52,9 +52,9 @@ public class SSOAuthOpenResource {
 
     @PostMapping("/sites/{siteToken}/logout")
     @ApiOperation(value = "登出指定站点")
-    public ResponseEntity<Void> logoutSite(@PathVariable("siteToken") String siteToken) {
+    public ResponseDTO<Void> logoutSite(@PathVariable("siteToken") String siteToken) {
         ssoAuthService.logoutBySiteToken(siteToken);
-        return ResponseEntity.ok().build();
+        return ResponseDTO.ok();
     }
 
 }
