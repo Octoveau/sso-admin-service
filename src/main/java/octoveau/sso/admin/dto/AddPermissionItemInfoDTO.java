@@ -24,14 +24,12 @@ public class AddPermissionItemInfoDTO implements Serializable {
 
     @ApiModelProperty(value = "权限名称",required = true)
     @NotBlank(message = "权限名称不能为空")
-    private String name;
+    private String permName;
 
     @ApiModelProperty(value = "权限类型")
-    private String action;
+    private String permAction;
 
     @ApiModelProperty(value = "权限值")
-    private Integer permValue;
+    private String permValue;
 
-    @ApiModelProperty(value = "所属权限组id-父级id，为0的就是父级")
-    private Long parentId;
 }

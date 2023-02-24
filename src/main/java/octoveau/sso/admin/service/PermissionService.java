@@ -35,13 +35,14 @@ public class PermissionService {
     @Transactional(rollbackFor = Exception.class)
     public Boolean addPermission(AddPermissionDTO addPermissionDTO){
         // 权限组名称唯一
-        List<Perm> permGroups = permissionRepository.findByNameAndParentId(addPermissionDTO.getName(), 0L);
+        List<Perm> permGroups = permissionRepository.findByPermNameAndParentId(addPermissionDTO.getPermGroupName(), 0L);
         if (!CollectionUtils.isEmpty(permGroups)) {
             throw new ServiceException("权限名称已存在");
         }
         // 添加权限组
         Perm permGroup = new Perm();
-        BeanUtils.copyProperties(addPermissionDTO, permGroup);
+        permGroup.setPermName(addPermissionDTO.getPermGroupName());
+        permGroup.setRemark(addPermissionDTO.getRemark());
         permGroup.setParentId(0L);
         permissionRepository.saveAndFlush(permGroup);
         // 添加权限
@@ -66,22 +67,22 @@ public class PermissionService {
 
     @Transactional(rollbackFor = Exception.class)
     public Boolean updatePerm(Long id, EditPermissionDTO editPermissionDTO) {
-        // 查询权限组信息
+        // 查询权限以及权限组信息
         List<Perm> permGroups = permissionRepository.findAllByIdOrParentId(id,id);
         if (CollectionUtils.isEmpty(permGroups)) {
             throw new NotFoundException("Not found perm by id: " + id);
         }
-        // 根据权限组名称查询权限组，若存在，则抛出错误
-        List<Perm> permGroupByNewName = permissionRepository.findByNameAndParentId(editPermissionDTO.getName(), 0L);
-        if (!CollectionUtils.isEmpty(permGroupByNewName)) {
+        List<Perm> permGroupByNewName = permissionRepository.findByPermNameAndParentId(editPermissionDTO.getPermGroupName(), 0L);
+        // 若存在除本权限组以外与修改的权限组名称重复的权限组，抛出错误
+        if (!CollectionUtils.isEmpty(permGroupByNewName) && !permGroupByNewName.get(0).getId().equals(id)) {
             throw new AlreadyExistsException(String.format(
-                    "The Site[%s] already exists.",
-                    editPermissionDTO.getName()));
+                    "The permGroupName[%s] already exists.",
+                    editPermissionDTO.getPermGroupName()));
         }
         // 获取原权限组信息
         Perm permGroup = permGroups.stream().filter(item ->
                 item.getParentId().equals(0L)).collect(Collectors.toList()).get(0);
-        permGroup.setName(editPermissionDTO.getName());
+        permGroup.setPermName(editPermissionDTO.getPermGroupName());
         permGroup.setRemark(editPermissionDTO.getRemark());
         // 修改权限组信息
         permissionRepository.saveAndFlush(permGroup);
@@ -99,13 +100,13 @@ public class PermissionService {
         return Boolean.TRUE;
     }
 
-    public Page<PermissionTreeVO> queryAllPerm(String name, Pageable pageable) {
+    public Page<PermissionTreeVO> queryAllPerm(String permName, Pageable pageable) {
         Page<Perm> page;
         // 分页查询权限组
-        if (StringUtils.isEmpty(name)) {
+        if (StringUtils.isEmpty(permName)) {
             page = permissionRepository.findAllByParentIdEquals(0L, pageable);
         } else {
-            page = permissionRepository.findAllByParentIdAndName(0L, name, pageable);
+            page = permissionRepository.findAllByParentIdAndPermName(0L, permName, pageable);
         }
         if (CollectionUtils.isEmpty(page.getContent())) {
             return page.map(Perm::toPermTreeVO);
@@ -116,10 +117,13 @@ public class PermissionService {
         if (CollectionUtils.isEmpty(permList)) {
             return page.map(Perm::toPermTreeVO);
         }
+        Map<Long, List<Perm>> permGroupMap = page.getContent().stream().collect(Collectors.groupingBy(Perm::getId));
         // 组装权限组与权限数据
         Map<Long, List<PermissionItemInfoVO>> permMap = permList.stream().map(perm -> {
             PermissionItemInfoVO permissionItemInfoVO = new PermissionItemInfoVO();
             BeanUtils.copyProperties(perm, permissionItemInfoVO);
+            String permPath = permGroupMap.get(perm.getParentId()).get(0).getPermName() + perm.getPermAction() + perm.getPermValue();
+            permissionItemInfoVO.setPermPath(permPath);
             return permissionItemInfoVO;
         }).collect(Collectors.groupingBy(PermissionItemInfoVO::getParentId));
         Page<PermissionTreeVO> permissionTreeVOPage = page.map(Perm::toPermTreeVO);

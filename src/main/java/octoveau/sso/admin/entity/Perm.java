@@ -31,14 +31,14 @@ public class Perm extends AbstractAuditingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", columnDefinition = "varchar(30)", nullable = false)
-    private String name;
+    @Column(name = "perm_name", columnDefinition = "varchar(30)", nullable = false)
+    private String permName;
 
-    @Column(name = "action", columnDefinition = "varchar(10)")
-    private String action;
+    @Column(name = "perm_action", columnDefinition = "varchar(10)")
+    private String permAction;
 
-    @Column(name = "perm_value", columnDefinition = "varchar(10)")
-    private Integer permValue;
+    @Column(name = "perm_value", columnDefinition = "varchar(30)")
+    private String permValue;
 
     @Column(name = "parent_id")
     private Long parentId;
@@ -49,6 +49,7 @@ public class Perm extends AbstractAuditingEntity {
     public PermissionTreeVO toPermTreeVO() {
         PermissionTreeVO permissionTreeVO = new PermissionTreeVO();
         BeanUtils.copyProperties(this, permissionTreeVO);
+        permissionTreeVO.setPermGroupName(this.getPermName());
         return permissionTreeVO;
     }
 

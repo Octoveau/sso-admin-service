@@ -9,11 +9,11 @@ import java.util.List;
 
 public interface PermissionRepository extends JpaRepository<Perm,Long> {
 
-    List<Perm> findByNameAndParentId(String name, Long id);
+    List<Perm> findByPermNameAndParentId(String permName, Long id);
 
     Page<Perm> findAllByParentIdEquals(Long parentId, Pageable pageable);
 
-    Page<Perm> findAllByParentIdAndName(Long parentId, String name, Pageable pageable);
+    Page<Perm> findAllByParentIdAndPermName(Long parentId, String permName, Pageable pageable);
 
     List<Perm> findAllByParentIdIn(List<Long> ids);
 

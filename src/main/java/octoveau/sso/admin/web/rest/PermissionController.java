@@ -48,8 +48,8 @@ public class PermissionController {
     @GetMapping("/perms/query")
     public ResponseDTO<PageObject<PermissionTreeVO>> queryAllPerm(
             @SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC) Pageable pageable,
-            String name) {
-        Page<PermissionTreeVO> permissionPage = permissionService.queryAllPerm(name,pageable);
+            String permName) {
+        Page<PermissionTreeVO> permissionPage = permissionService.queryAllPerm(permName,pageable);
         PageObject<PermissionTreeVO> pageObject = PageObject.of(permissionPage.getTotalElements(), permissionPage.getContent());
         return ResponseDTO.ok(pageObject);
     }

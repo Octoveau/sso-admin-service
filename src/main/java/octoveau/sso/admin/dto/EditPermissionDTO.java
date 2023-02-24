@@ -29,7 +29,7 @@ public class EditPermissionDTO implements Serializable {
 
     @ApiModelProperty(value = "权限组名称", required = true)
     @NotBlank(message = "权限组名称不能为空")
-    private String name;
+    private String permGroupName;
 
     @ApiModelProperty(value = "备注")
     private String remark;

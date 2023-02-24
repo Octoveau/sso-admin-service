@@ -24,11 +24,11 @@ public class PermissionTreeVO implements Serializable {
     private Long id;
 
     @ApiModelProperty(value = "权限组名称")
-    private String name;
+    private String permGroupName;
 
     @ApiModelProperty(value = "备注")
     private String remark;
 
     @ApiModelProperty(value = "权限集合")
-    private List<PermissionItemInfoVO> Perms;
+    private List<PermissionItemInfoVO> perms;
 }
