@@ -4,6 +4,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import octoveau.sso.admin.dto.AddPermissionDTO;
 import octoveau.sso.admin.dto.EditPermissionDTO;
+import octoveau.sso.admin.dto.QueryPermissionDTO;
 import octoveau.sso.admin.dto.ResponseDTO;
 import octoveau.sso.admin.entity.PageObject;
 import octoveau.sso.admin.service.PermissionService;
@@ -48,8 +49,8 @@ public class PermissionController {
     @GetMapping("/perms/query")
     public ResponseDTO<PageObject<PermissionTreeVO>> queryAllPerm(
             @SortDefault(sort = "lastModifiedDate", direction = Sort.Direction.DESC) Pageable pageable,
-            String name) {
-        Page<PermissionTreeVO> permissionPage = permissionService.queryAllPerm(name,pageable);
+            QueryPermissionDTO queryPermissionDTO) {
+        Page<PermissionTreeVO> permissionPage = permissionService.queryAllPerm(queryPermissionDTO,pageable);
         PageObject<PermissionTreeVO> pageObject = PageObject.of(permissionPage.getTotalElements(), permissionPage.getContent());
         return ResponseDTO.ok(pageObject);
     }

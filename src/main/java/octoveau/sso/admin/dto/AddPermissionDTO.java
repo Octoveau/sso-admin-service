@@ -1,6 +1,7 @@
 package octoveau.sso.admin.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value="AddPermissionDTO", description="添加权限DTO")
 public class AddPermissionDTO implements Serializable {
 
@@ -25,7 +27,7 @@ public class AddPermissionDTO implements Serializable {
 
     @ApiModelProperty(value = "权限组名称", required = true)
     @NotBlank(message = "权限组名称不能为空")
-    private String name;
+    private String permGroupName;
 
     @ApiModelProperty(value = "备注")
     private String remark;
