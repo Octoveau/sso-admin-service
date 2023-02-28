@@ -2,6 +2,7 @@ package octoveau.sso.admin.service;
 
 import octoveau.sso.admin.dto.AddPermissionDTO;
 import octoveau.sso.admin.dto.EditPermissionDTO;
+import octoveau.sso.admin.dto.QueryPermissionDTO;
 import octoveau.sso.admin.entity.Perm;
 import octoveau.sso.admin.exception.AlreadyExistsException;
 import octoveau.sso.admin.exception.NotFoundException;
@@ -10,16 +11,23 @@ import octoveau.sso.admin.repository.PermissionRepository;
 import octoveau.sso.admin.security.SecurityUtils;
 import octoveau.sso.admin.vo.PermissionItemInfoVO;
 import octoveau.sso.admin.vo.PermissionTreeVO;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -100,14 +108,9 @@ public class PermissionService {
         return Boolean.TRUE;
     }
 
-    public Page<PermissionTreeVO> queryAllPerm(String permName, Pageable pageable) {
-        Page<Perm> page;
-        // 分页查询权限组
-        if (StringUtils.isEmpty(permName)) {
-            page = permissionRepository.findAllByParentIdEquals(0L, pageable);
-        } else {
-            page = permissionRepository.findAllByParentIdAndPermName(0L, permName, pageable);
-        }
+    public Page<PermissionTreeVO> queryAllPerm(QueryPermissionDTO queryPermissionDTO, Pageable pageable) {
+        Specification<Perm> specification = getSpecification(queryPermissionDTO);
+        Page<Perm> page = permissionRepository.findAll(specification,pageable);
         if (CollectionUtils.isEmpty(page.getContent())) {
             return page.map(Perm::toPermTreeVO);
         }
@@ -122,7 +125,8 @@ public class PermissionService {
         Map<Long, List<PermissionItemInfoVO>> permMap = permList.stream().map(perm -> {
             PermissionItemInfoVO permissionItemInfoVO = new PermissionItemInfoVO();
             BeanUtils.copyProperties(perm, permissionItemInfoVO);
-            String permPath = permGroupMap.get(perm.getParentId()).get(0).getPermName() + perm.getPermAction() + perm.getPermValue();
+            String permPath = permGroupMap.get(perm.getParentId()).get(0).getPermName() + "-"
+                    + perm.getPermAction() + "-" + perm.getPermValue();
             permissionItemInfoVO.setPermPath(permPath);
             return permissionItemInfoVO;
         }).collect(Collectors.groupingBy(PermissionItemInfoVO::getParentId));
@@ -131,6 +135,24 @@ public class PermissionService {
             item.setPerms(permMap.get(item.getId()));
         });
         return permissionTreeVOPage;
+    }
+
+    private Specification<Perm> getSpecification(QueryPermissionDTO queryPermissionDTO) {
+        Specification<Perm> specification = new Specification<Perm>() {
+            @Override
+            public Predicate toPredicate(Root<Perm> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
+                List<Predicate> predicates = new ArrayList<>();
+                if (!StringUtils.isEmpty(queryPermissionDTO.getPermName())) {
+                    predicates.add(criteriaBuilder.like(root.get("permName"), "%"+ queryPermissionDTO.getPermName() +"%"));
+                }
+                if (!ObjectUtils.isEmpty(queryPermissionDTO.getId())) {
+                    predicates.add(criteriaBuilder.equal(root.get("id"),queryPermissionDTO.getId()));
+                }
+                predicates.add(criteriaBuilder.equal(root.get("parentId"), 0L));
+                return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
+            }
+        };
+        return specification;
     }
 
 }
